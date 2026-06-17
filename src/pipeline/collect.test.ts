@@ -155,6 +155,86 @@ describe("runCollection caps and fallbacks", () => {
   });
 });
 
+describe("runCollection round-robin across feeds", () => {
+  const FEED_A = "https://feed.test/a";
+  const FEED_B = "https://feed.test/b";
+  const FEED_C = "https://feed.test/c";
+
+  function itemsFor(prefix: string, n: number) {
+    return Array.from({ length: n }, (_, i) => ({
+      url: `https://art.test/${prefix}/${i}`,
+      title: `LLM prompt injection ${prefix}${i}`,
+    }));
+  }
+
+  function multiFeedHttp(feeds: Map<string, string>): HttpClient {
+    return {
+      async fetch(url) {
+        const feed = feeds.get(url);
+        if (feed) return { ok: true, status: 200, text: feed };
+        return { ok: true, status: 200, text: richHtml(url) };
+      },
+    };
+  }
+
+  it("picks evenly from each source so a high-volume feed cannot starve others", async () => {
+    const feeds = new Map([
+      [FEED_A, rss(itemsFor("a", 5))],
+      [FEED_B, rss(itemsFor("b", 5))],
+      [FEED_C, rss(itemsFor("c", 5))],
+    ]);
+    const summary = await runCollection(
+      baseDeps({
+        feeds: [
+          { source: "A", url: FEED_A },
+          { source: "B", url: FEED_B },
+          { source: "C", url: FEED_C },
+        ],
+        http: multiFeedHttp(feeds),
+        cap: 6,
+      }),
+    );
+
+    const list = await repo.listArticles({ page: 1, perPage: 20 });
+    const bySource = new Map<string, number>();
+    for (const item of list.items) {
+      bySource.set(item.source, (bySource.get(item.source) ?? 0) + 1);
+    }
+    expect(summary.saved).toBe(6);
+    expect(summary.deferred).toBe(9);
+    expect(bySource.get("A")).toBe(2);
+    expect(bySource.get("B")).toBe(2);
+    expect(bySource.get("C")).toBe(2);
+  });
+
+  it("uses leftover capacity from smaller feeds to take more from larger ones", async () => {
+    const feeds = new Map([
+      [FEED_A, rss(itemsFor("a", 1))],
+      [FEED_B, rss(itemsFor("b", 5))],
+    ]);
+    const summary = await runCollection(
+      baseDeps({
+        feeds: [
+          { source: "A", url: FEED_A },
+          { source: "B", url: FEED_B },
+        ],
+        http: multiFeedHttp(feeds),
+        cap: 4,
+      }),
+    );
+
+    const list = await repo.listArticles({ page: 1, perPage: 20 });
+    const bySource = new Map<string, number>();
+    for (const item of list.items) {
+      bySource.set(item.source, (bySource.get(item.source) ?? 0) + 1);
+    }
+    expect(summary.saved).toBe(4);
+    expect(summary.deferred).toBe(2);
+    expect(bySource.get("A")).toBe(1);
+    expect(bySource.get("B")).toBe(3);
+  });
+});
+
 describe("runCollection AI error handling", () => {
   it("retries transient AI errors then skips after exhausting retries", async () => {
     const slept: number[] = [];

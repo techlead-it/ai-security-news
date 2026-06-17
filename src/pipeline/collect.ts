@@ -56,6 +56,37 @@ function dedupeWithinBatch(items: FeedItem[]): Array<{ item: FeedItem; key: stri
   return result;
 }
 
+/**
+ * ソース別にラウンドロビンで cap 件まで採用する。
+ * 高頻度フィードが先頭で枠を独占して低頻度フィードが永続的に取り込まれない
+ * スタベーションを防ぐ。各ソースのキューは入力順を保つ。
+ */
+function pickRoundRobin(
+  items: FeedItem[],
+  cap: number,
+): { picked: FeedItem[]; deferred: number } {
+  const queues = new Map<string, FeedItem[]>();
+  for (const item of items) {
+    const q = queues.get(item.source);
+    if (q) q.push(item);
+    else queues.set(item.source, [item]);
+  }
+  const picked: FeedItem[] = [];
+  while (picked.length < cap) {
+    let progressed = false;
+    for (const q of queues.values()) {
+      if (picked.length >= cap) break;
+      const next = q.shift();
+      if (next !== undefined) {
+        picked.push(next);
+        progressed = true;
+      }
+    }
+    if (!progressed) break;
+  }
+  return { picked, deferred: items.length - picked.length };
+}
+
 async function analyzeWithRetry(
   ai: AiEngine,
   input: Parameters<AiEngine["analyze"]>[0],
@@ -117,11 +148,14 @@ export async function runCollection(
     return ok;
   });
 
-  // 上限キャップ。超過分は保存しないため次回 tick で再度新着として拾われる
-  const capped = passedFirst.slice(0, cap);
-  summary.deferred = passedFirst.length - capped.length;
+  // ソース別ラウンドロビンで cap 件まで採用。高頻度フィードに枠を独占されない
+  const { picked, deferred } = pickRoundRobin(
+    passedFirst.map((c) => c.item),
+    cap,
+  );
+  summary.deferred = deferred;
 
-  for (const { item } of capped) {
+  for (const item of picked) {
     try {
       const { body, fetchFailed } = await resolveArticleBody(item, deps.http);
       if (fetchFailed) summary.fetchFailed++;
