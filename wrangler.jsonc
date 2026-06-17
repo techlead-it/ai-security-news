@@ -24,8 +24,8 @@
     "remote": true
   },
   "triggers": {
-    // 3日に1回（毎月3日刻みの 00:00 UTC）収集パイプラインを実行
-    "crons": ["0 0 */3 * *"]
+    // 毎日 00:00 UTC に収集パイプラインを実行
+    "crons": ["0 0 * * *"]
   },
   "observability": {
     "enabled": true

@@ -207,6 +207,28 @@ describe("runCollection round-robin across feeds", () => {
     expect(bySource.get("C")).toBe(2);
   });
 
+  it("defaults to a cap large enough for 8 feeds to each contribute multiple items per tick", async () => {
+    // 8 ソース × 5件、計40件中 30件（cap デフォルト）が保存されることで
+    // 「cap=10 で先頭2フィードに枠を独占される」事態に戻らないことを検証する。
+    const feedUrls = Array.from({ length: 8 }, (_, i) => `https://feed.test/${i}`);
+    const feeds = new Map(
+      feedUrls.map((url, i) => [url, rss(itemsFor(`s${i}`, 5))]),
+    );
+    const summary = await runCollection(
+      baseDeps({
+        feeds: feedUrls.map((url, i) => ({ source: `S${i}`, url })),
+        http: multiFeedHttp(feeds),
+        // cap 未指定 = DEFAULT_CAP を使う
+      }),
+    );
+
+    expect(summary.saved).toBe(30);
+    expect(summary.deferred).toBe(10);
+    const list = await repo.listArticles({ page: 1, perPage: 50 });
+    const sources = new Set(list.items.map((i) => i.source));
+    expect(sources.size).toBe(8);
+  });
+
   it("uses leftover capacity from smaller feeds to take more from larger ones", async () => {
     const feeds = new Map([
       [FEED_A, rss(itemsFor("a", 1))],
