@@ -183,6 +183,7 @@ describe("runCollection round-robin across feeds", () => {
       [FEED_B, rss(itemsFor("b", 5))],
       [FEED_C, rss(itemsFor("c", 5))],
     ]);
+    const logs: string[] = [];
     const summary = await runCollection(
       baseDeps({
         feeds: [
@@ -192,6 +193,7 @@ describe("runCollection round-robin across feeds", () => {
         ],
         http: multiFeedHttp(feeds),
         cap: 6,
+        logger: (m) => logs.push(m),
       }),
     );
 
@@ -205,6 +207,10 @@ describe("runCollection round-robin across feeds", () => {
     expect(bySource.get("A")).toBe(2);
     expect(bySource.get("B")).toBe(2);
     expect(bySource.get("C")).toBe(2);
+    expect(summary.savedBySource).toEqual({ A: 2, B: 2, C: 2 });
+    expect(
+      logs.some((l) => l.includes("保存内訳") && l.includes("A=2")),
+    ).toBe(true);
   });
 
   it("defaults to a cap large enough for 8 feeds to each contribute multiple items per tick", async () => {

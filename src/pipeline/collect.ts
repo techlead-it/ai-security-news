@@ -40,6 +40,8 @@ export interface CollectionSummary {
   neuronLimitReached: boolean;
   /** フィード単位の取得失敗（HTTPエラー or 例外）。観測ログ用 */
   feedFailures: FeedFailure[];
+  /** ソース別の保存件数。観測ログ用 */
+  savedBySource: Record<string, number>;
 }
 
 const defaultSleep = (ms: number): Promise<void> =>
@@ -127,6 +129,7 @@ export async function runCollection(
     deferred: 0,
     neuronLimitReached: false,
     feedFailures: [],
+    savedBySource: {},
   };
 
   const categoryId = await deps.repo.getOrCreateCategory(
@@ -227,6 +230,8 @@ export async function runCollection(
         labelIds,
       });
       summary.saved++;
+      summary.savedBySource[item.source] =
+        (summary.savedBySource[item.source] ?? 0) + 1;
     } catch (err) {
       // 記事単位の予期せぬ失敗は分離し、全体を止めない
       summary.aiErrors++;
@@ -241,5 +246,9 @@ export async function runCollection(
       `取得失敗=${summary.fetchFailed} AIエラー=${summary.aiErrors} ` +
       `繰越=${summary.deferred} Neuron上限=${summary.neuronLimitReached}`,
   );
+  const breakdown = Object.entries(summary.savedBySource)
+    .map(([source, n]) => `${source}=${n}`)
+    .join(" ");
+  if (breakdown) log(`保存内訳: ${breakdown}`);
   return summary;
 }
