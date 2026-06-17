@@ -32,31 +32,41 @@ vp exec wrangler dev --test-scheduled                 # 起動（収集は手動
 curl "http://localhost:<port>/__scheduled?cron=0+0+*%2F3+*+*"
 ```
 
-Workers AI バインディングはローカル開発でも実際の Cloudflare AI を呼ぶため、
-`CLOUDFLARE_API_TOKEN`（Workers AI 実行権限を持つもの）を環境変数に設定して `wrangler dev` を起動する。
+Workers AI バインディングはローカル開発でも実際の Cloudflare AI を呼ぶ。`wrangler.jsonc` の
+ai に `"remote": true` を付けてあるので、`CLOUDFLARE_API_TOKEN`（Workers AI 実行権限つき）を
+環境変数に設定して `wrangler dev` を起動すれば、ローカル D1 + リモート AI で動かせる。
 
 ## デプロイ（本番）
 
+公開URL: https://ai-rss.techlead-it.workers.dev
+
 `main` への push で `.github/workflows/deploy.yml` が test → 型チェック → build →
-D1 マイグレーション適用 → `wrangler deploy` を実行する。
+D1 マイグレーション適用 → `wrangler deploy` を実行する（マイグレーションは冪等）。
+スキーマ変更は `migrations/` に `NNNN_*.sql` を追加して push するだけで本番に自動適用される。
 
-### 一度きりのセットアップ
+### CI のトークン構成（最小権限で分離）
 
-1. **D1 を作成**し、`wrangler.jsonc` の `database_id` を実 ID に差し替える:
-   ```bash
-   vp exec wrangler d1 create ai-rss   # 出力された database_id を wrangler.jsonc に反映
-   ```
-2. **API トークンの権限**: GitHub Secrets の `CLOUDFLARE_API_TOKEN` は
-   `Workers Scripts:Edit` に加えて `D1:Edit` と `Workers AI:Read` を含める必要がある
-   （`demo-site-builder` の token 発行スクリプトは Workers Scripts のみ付与するため、
-   D1/AI を使う本プロジェクトでは権限を追加した token を登録し直す）。
-3. 初回は手元から `vp exec wrangler d1 migrations apply ai-rss --remote` で
-   リモート D1 にスキーマを適用しておく（以降は CI が冪等に適用）。
+| GitHub Secret | 用途 | 権限 |
+|---|---|---|
+| `CLOUDFLARE_API_TOKEN` | `wrangler deploy` | Workers Scripts: Edit |
+| `CLOUDFLARE_D1_TOKEN` | `wrangler d1 migrations apply --remote` | D1: Read + Write |
+| `CLOUDFLARE_ACCOUNT_ID` | アカウント ID | — |
+
+> 実行時の D1/Workers AI は Worker のバインディング（`env.DB` / `env.AI`）でアクセスするため、
+> デプロイ済み Worker は API トークンを使わない。トークンが要るのは wrangler の管理操作だけ。
+
+### セットアップ状況（済み）
+
+- D1 `ai-rss` 作成済み・`wrangler.jsonc` に `database_id` 設定済み（公開可能な識別子）
+- リモート D1 にマイグレーション適用済み
+- 上記 3 シークレット登録済み
 
 ### Cron / 手動トリガー
 
-- Cron Trigger（`wrangler.jsonc` の `triggers.crons`）はデプロイ時に反映される。
-- 本番の手動収集はダッシュボードの Cron 実行、または再デプロイで起動する。
+- Cron Trigger（`wrangler.jsonc` の `triggers.crons`、3日に1回）はデプロイ時に反映される。
+- 本番 D1 を即時に埋めたい場合は、`CLOUDFLARE_API_TOKEN`（AI/D1 実行権限つき）を設定して
+  `wrangler dev --remote --test-scheduled` を起動し、`curl http://localhost:8787/__scheduled` で収集を実行する
+  （リモートバインディング＝本番 D1 に書き込まれる）。
 
 ## ディレクトリ構成
 
