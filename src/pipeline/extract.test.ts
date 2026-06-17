@@ -42,6 +42,54 @@ describe("extractArticleText", () => {
     expect(text).not.toContain("メニュー");
     expect(text).not.toContain("フッター");
   });
+
+  it("isolates div[role=main] from sibling sidebars when no <article>/<main>", () => {
+    const sidebarNoise = "サイドバーの関連リンク。".repeat(60);
+    const html = `<body>
+<div class="sidebar"><p>${sidebarNoise}</p></div>
+<div role="main"><p>${RICH_PARAGRAPH}</p></div>
+</body>`;
+    const text = extractArticleText(html);
+    expect(text).toContain("これは記事の本文です。");
+    expect(text).not.toContain("サイドバーの関連リンク。");
+  });
+
+  it("isolates div.entry-content from sibling related-posts", () => {
+    const related = "関連記事のリンクテキスト。".repeat(60);
+    const html = `<body>
+<div class="related-posts"><p>${related}</p></div>
+<div class="entry-content"><p>${RICH_PARAGRAPH}</p></div>
+</body>`;
+    const text = extractArticleText(html);
+    expect(text).toContain("これは記事の本文です。");
+    expect(text).not.toContain("関連記事のリンクテキスト。");
+  });
+
+  it("isolates div.post-content from sibling comment blocks", () => {
+    const comments = "コメント欄のノイズ。".repeat(60);
+    const html = `<body>
+<div class="post-content"><p>${RICH_PARAGRAPH}</p></div>
+<div class="comments-area"><p>${comments}</p></div>
+</body>`;
+    const text = extractArticleText(html);
+    expect(text).toContain("これは記事の本文です。");
+    expect(text).not.toContain("コメント欄のノイズ。");
+  });
+
+  it("isolates div.article-content and div.article-body variants", () => {
+    const noise = "サイトの広告ブロック。".repeat(60);
+    const html1 = `<body>
+<div class="article-content"><p>${RICH_PARAGRAPH}</p></div>
+<div class="ad-slot"><p>${noise}</p></div></body>`;
+    expect(extractArticleText(html1)).toContain("これは記事の本文です。");
+    expect(extractArticleText(html1)).not.toContain("サイトの広告ブロック。");
+
+    const html2 = `<body>
+<div class="ad-slot"><p>${noise}</p></div>
+<div class="article-body"><p>${RICH_PARAGRAPH}</p></div></body>`;
+    expect(extractArticleText(html2)).toContain("これは記事の本文です。");
+    expect(extractArticleText(html2)).not.toContain("サイトの広告ブロック。");
+  });
 });
 
 describe("resolveArticleBody", () => {

@@ -14,11 +14,36 @@ function stripChrome(html: string): string {
     .replace(/<aside[\s\S]*?<\/aside>/gi, " ");
 }
 
+// 本文を内包する代表的なクラス名（部分一致）。順序は優先度どおり。
+const CONTENT_CLASS_PATTERNS = [
+  "entry-content",
+  "post-content",
+  "article-content",
+  "article-body",
+];
+
+function pickByClass(html: string, classFragment: string): string | null {
+  const re = new RegExp(
+    `<(div|section)[^>]*class=["'][^"']*${classFragment}[^"']*["'][^>]*>([\\s\\S]*?)</\\1>`,
+    "i",
+  );
+  const m = html.match(re);
+  return m ? m[2] : null;
+}
+
 function mainRegion(html: string): string {
   const article = html.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
   if (article) return article[1];
   const main = html.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
   if (main) return main[1];
+  const roleMain = html.match(
+    /<(div|section)[^>]*role=["']main["'][^>]*>([\s\S]*?)<\/\1>/i,
+  );
+  if (roleMain) return roleMain[2];
+  for (const fragment of CONTENT_CLASS_PATTERNS) {
+    const byClass = pickByClass(html, fragment);
+    if (byClass) return byClass;
+  }
   return html;
 }
 
