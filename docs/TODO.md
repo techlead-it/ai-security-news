@@ -120,19 +120,19 @@
 
 ### フェーズ8: API（Worker fetch handler）
 
-- [ ] [RED] `GET /api/articles`（絞り込み・検索・ページング）正常系のテスト作成
-- [ ] [GREEN] 一覧APIの実装
-- [ ] [RED] クエリパラメータ検証（page/perPage/q/label/category の上限クランプ・不正値）のテスト作成
-- [ ] [GREEN] バリデーションの実装
-- [ ] [RED] `GET /api/articles/:id`（詳細・存在しないID）のテスト作成
-- [ ] [GREEN] 詳細APIの実装
-- [ ] [RED] `GET /api/labels?category=`（件数付き）・`GET /api/categories` のテスト作成
-- [ ] [GREEN] ラベル/カテゴリAPIの実装
-- [ ] [RED] `/api/*` 以外を SPA(index.html) にフォールバック配信するテスト作成
-- [ ] [GREEN] ルーティング・静的配信の実装
-- [ ] [REFACTOR] レスポンス形式・エラー応答の統一
-- [ ] [REVIEW] フェーズ実装の簡易セルフレビューと修正
-- [ ] [CHECK] `vp test` / `vp check --no-lint --no-fmt` / `vp build` の実行と確認
+- [x] [RED] `GET /api/articles`（絞り込み・検索・ページング）正常系のテスト作成
+- [x] [GREEN] 一覧APIの実装
+- [x] [RED] クエリパラメータ検証（page/perPage/q/label/category の上限クランプ・不正値）のテスト作成
+- [x] [GREEN] バリデーションの実装
+- [x] [RED] `GET /api/articles/:id`（詳細・存在しないID）のテスト作成
+- [x] [GREEN] 詳細APIの実装
+- [x] [RED] `GET /api/labels?category=`（件数付き）・`GET /api/categories` のテスト作成
+- [x] [GREEN] ラベル/カテゴリAPIの実装
+- [x] [RED] `/api/*` 以外を SPA(index.html) にフォールバック配信するテスト作成
+- [x] [GREEN] ルーティング・静的配信の実装
+- [x] [REFACTOR] レスポンス形式・エラー応答の統一
+- [x] [REVIEW] フェーズ実装の簡易セルフレビューと修正
+- [x] [CHECK] `vp test` / `vp check --no-lint --no-fmt` / `vp build` の実行と確認
 
 ### フェーズ9: フロントエンド SPA
 
