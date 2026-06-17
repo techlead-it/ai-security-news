@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* AIセキュリティ研究ノート: 紙のような落ち着いた配色 + シグナルアクセント（ライトのみ） */
 @theme {

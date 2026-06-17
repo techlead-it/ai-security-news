@@ -1,4 +1,6 @@
 import { Link, useParams } from "react-router";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useApi } from "../api/context";
 import { useAsync } from "../hooks/useAsync";
 import { formatDate } from "../lib/format";
@@ -10,7 +12,7 @@ export function ArticlePage() {
   const state = useAsync(() => api.getArticle(articleId), [articleId]);
 
   return (
-    <div className="mx-auto min-h-screen max-w-2xl px-4 pb-16">
+    <div className="mx-auto min-h-screen max-w-3xl px-4 pb-16">
       <header className="py-6">
         <Link to="/home" className="font-mono text-xs text-accent">
           ← 一覧へ戻る
@@ -65,14 +67,20 @@ export function ArticlePage() {
 
           <section className="mt-6">
             <h2 className="text-sm font-semibold text-muted">要約</h2>
-            <p className="mt-1 leading-relaxed">{state.data.summary}</p>
+            <div className="prose prose-sm mt-1 max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {state.data.summary}
+              </ReactMarkdown>
+            </div>
           </section>
 
           <section className="mt-6">
             <h2 className="text-sm font-semibold text-muted">要点</h2>
-            <p className="mt-1 whitespace-pre-line leading-relaxed">
-              {state.data.detail}
-            </p>
+            <div className="prose prose-sm mt-1 max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {state.data.detail}
+              </ReactMarkdown>
+            </div>
           </section>
 
           <div className="mt-8">
