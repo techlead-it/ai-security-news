@@ -46,11 +46,11 @@ D1 マイグレーション適用 → `wrangler deploy` を実行する（マイ
 
 ### CI のトークン構成（最小権限で分離）
 
-| GitHub Secret | 用途 | 権限 |
-|---|---|---|
-| `CLOUDFLARE_API_TOKEN` | `wrangler deploy` | Workers Scripts: Edit |
-| `CLOUDFLARE_D1_TOKEN` | `wrangler d1 migrations apply --remote` | D1: Read + Write |
-| `CLOUDFLARE_ACCOUNT_ID` | アカウント ID | — |
+| GitHub Secret           | 用途                                    | 権限                  |
+| ----------------------- | --------------------------------------- | --------------------- |
+| `CLOUDFLARE_API_TOKEN`  | `wrangler deploy`                       | Workers Scripts: Edit |
+| `CLOUDFLARE_D1_TOKEN`   | `wrangler d1 migrations apply --remote` | D1: Read + Write      |
+| `CLOUDFLARE_ACCOUNT_ID` | アカウント ID                           | —                     |
 
 > 実行時の D1/Workers AI は Worker のバインディング（`env.DB` / `env.AI`）でアクセスするため、
 > デプロイ済み Worker は API トークンを使わない。トークンが要るのは wrangler の管理操作だけ。
