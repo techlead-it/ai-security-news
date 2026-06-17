@@ -177,7 +177,13 @@ export async function runCollection(
       try {
         analysis = await analyzeWithRetry(
           deps.ai,
-          { title: item.title, body, source: item.source, existingLabels },
+          {
+            title: item.title,
+            body,
+            source: item.source,
+            existingLabels,
+            fetchFailed,
+          },
           maxRetries,
           sleep,
         );

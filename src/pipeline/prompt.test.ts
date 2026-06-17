@@ -30,4 +30,16 @@ describe("buildAnalysisPrompt", () => {
     expect(system).toContain("detail");
     expect(system).toContain("labels");
   });
+
+  it("adds a notice for fetchFailed=true to soften relevance judgement", () => {
+    const { user } = buildAnalysisPrompt({ ...input, fetchFailed: true });
+    expect(user).toContain("本文取得に失敗");
+  });
+
+  it("omits the fetch-failed notice when fetchFailed is false or unset", () => {
+    const { user: a } = buildAnalysisPrompt(input);
+    const { user: b } = buildAnalysisPrompt({ ...input, fetchFailed: false });
+    expect(a).not.toContain("本文取得に失敗");
+    expect(b).not.toContain("本文取得に失敗");
+  });
 });

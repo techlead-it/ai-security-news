@@ -8,6 +8,8 @@ export interface AnalysisPromptInput {
   source: string;
   /** 既存ラベル一覧（表記揺れ防止のため候補として提示） */
   existingLabels: string[];
+  /** 本文取得に失敗し RSS 抜粋を body に渡しているか。true なら判定指示を緩める */
+  fetchFailed?: boolean;
 }
 
 export interface AnalysisPrompt {
@@ -31,12 +33,16 @@ export function buildAnalysisPrompt(input: AnalysisPromptInput): AnalysisPrompt 
     input.existingLabels.length > 0
       ? input.existingLabels.join(", ")
       : "(まだ無し)";
-  const user = [
+  const lines = [
     `ソース: ${input.source}`,
     `タイトル: ${input.title}`,
     `既存ラベル: ${labelList}`,
-    "本文:",
-    input.body,
-  ].join("\n");
-  return { system: SYSTEM_PROMPT, user };
+  ];
+  if (input.fetchFailed) {
+    lines.push(
+      "備考: 本文取得に失敗しています。RSS抜粋のみでの判定で構いません。AI セキュリティ関連性が読み取れる場合は relevant=true としてください。",
+    );
+  }
+  lines.push("本文:", input.body);
+  return { system: SYSTEM_PROMPT, user: lines.join("\n") };
 }
