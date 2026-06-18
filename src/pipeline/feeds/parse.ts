@@ -34,13 +34,44 @@ function toIso(dateText: string): string | null {
   return new Date(ms).toISOString();
 }
 
-function pickAtomLink(link: unknown): string {
-  for (const node of toArray<unknown>(link)) {
-    if (typeof node === "string") return node;
-    const href = (node as XmlNode)["@_href"];
-    if (typeof href === "string") return href;
+interface AtomLinkCandidate {
+  href: string;
+  rel: string;
+  type: string;
+}
+
+function toAtomLinkCandidate(node: unknown): AtomLinkCandidate | null {
+  if (typeof node === "string") {
+    // 文字列の <link>https://...</link> はテキストノード扱い。rel 既定は alternate (Atom 1.0)。
+    return { href: node, rel: "alternate", type: "" };
   }
-  return "";
+  if (!node || typeof node !== "object") return null;
+  const obj = node as XmlNode;
+  const href = obj["@_href"];
+  if (typeof href !== "string" || href.length === 0) return null;
+  // Atom 1.0 で rel 未指定は "alternate" 扱い。
+  const rel = typeof obj["@_rel"] === "string" ? (obj["@_rel"] as string) : "alternate";
+  const type = typeof obj["@_type"] === "string" ? (obj["@_type"] as string) : "";
+  return { href, rel, type };
+}
+
+/**
+ * Atom entry の <link> 群から本文 HTML の URL を選ぶ。
+ * 優先順位: rel="alternate" type="text/html" > rel="alternate" > 配列先頭。
+ * Blogger 等は rel="replies"/"edit"/"self" を先頭に置くため、無条件先頭採用だと
+ * コメントフィードの URL を取ってしまう。
+ */
+function pickAtomLink(link: unknown): string {
+  const candidates = toArray<unknown>(link)
+    .map(toAtomLinkCandidate)
+    .filter((c): c is AtomLinkCandidate => c !== null);
+  if (candidates.length === 0) return "";
+  return (
+    candidates.find((c) => c.rel === "alternate" && c.type === "text/html")
+      ?.href ??
+    candidates.find((c) => c.rel === "alternate")?.href ??
+    candidates[0].href
+  );
 }
 
 function parseRssItems(channel: XmlNode, source: string): FeedItem[] {

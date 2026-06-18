@@ -124,6 +124,46 @@ describe("parseFeed", () => {
     expect(items[0].title).toBe("Why LLM security matters");
   });
 
+  it("picks the rel=alternate text/html link over replies/self/edit for Atom entries", () => {
+    // Google Security Blog (Blogger) のように entry に複数 link がある場合、
+    // 先頭が rel="replies" の comments フィードでも本文 HTML を採用する。
+    const atom = `<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Google Security Blog</title>
+  <entry>
+    <title>AI threats in the wild</title>
+    <id>tag:blogger.com,1999:blog-1.post-2</id>
+    <updated>2026-04-23T21:38:06Z</updated>
+    <link href="http://security.googleblog.com/feeds/2/comments/default" rel="replies" type="application/atom+xml"/>
+    <link href="http://www.blogger.com/comment/fullpage/post/1/2" rel="replies" type="text/html"/>
+    <link href="http://www.blogger.com/feeds/1/posts/default/2" rel="edit" type="application/atom+xml"/>
+    <link href="http://www.blogger.com/feeds/1/posts/default/2" rel="self" type="application/atom+xml"/>
+    <link href="http://security.googleblog.com/2026/04/ai-threats-in-wild.html" rel="alternate" title="AI threats in the wild" type="text/html"/>
+    <summary>s</summary>
+  </entry>
+</feed>`;
+    const items = parseFeed(atom, "Google Security Blog");
+    expect(items[0].url).toBe(
+      "http://security.googleblog.com/2026/04/ai-threats-in-wild.html",
+    );
+  });
+
+  it("falls back to a rel-less Atom link (which is alternate per spec)", () => {
+    const atom = `<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>F</title>
+  <entry>
+    <title>T</title>
+    <id>id-1</id>
+    <updated>2026-06-15T12:00:00Z</updated>
+    <link href="https://e/post"/>
+    <summary>s</summary>
+  </entry>
+</feed>`;
+    const items = parseFeed(atom, "F");
+    expect(items[0].url).toBe("https://e/post");
+  });
+
   it("prefers Atom content over summary when both are present", () => {
     const atom = `<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
