@@ -91,9 +91,9 @@ export function HomePage() {
           <p className="mb-4 text-sm text-muted">
             {articles.data.total} 件の記事
           </p>
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {articles.data.items.map((article) => (
-              <li key={article.id}>
+              <li key={article.id} className="h-full">
                 <ArticleCard
                   article={article}
                   onLabelClick={(slug) => setFilter({ label: slug })}
