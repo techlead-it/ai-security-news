@@ -123,32 +123,33 @@ function ChatPopup({
   // ドラッグ中のみ window 全体に pointermove/pointerup を聞く（touch/mouse/pen 統合）。
   useEffect(() => {
     if (!drag) return;
+    const d = drag;
     function onMove(e: PointerEvent) {
-      const dx = e.clientX - drag!.startX;
-      const dy = e.clientY - drag!.startY;
+      const dx = e.clientX - d.startX;
+      const dy = e.clientY - d.startY;
       const vp = getViewportSize();
-      if (drag!.type === "move") {
-        const maxLeft = vp.width - drag!.startSize.width - VIEWPORT_MARGIN;
-        const maxTop = vp.height - drag!.startSize.height - VIEWPORT_MARGIN;
+      if (d.type === "move") {
+        const maxLeft = vp.width - d.startSize.width - VIEWPORT_MARGIN;
+        const maxTop = vp.height - d.startSize.height - VIEWPORT_MARGIN;
         setLayout({
-          size: drag!.startSize,
+          size: d.startSize,
           pos: {
-            top: clamp(drag!.startPos.top + dy, VIEWPORT_MARGIN, maxTop),
-            left: clamp(drag!.startPos.left + dx, VIEWPORT_MARGIN, maxLeft),
+            top: clamp(d.startPos.top + dy, VIEWPORT_MARGIN, maxTop),
+            left: clamp(d.startPos.left + dx, VIEWPORT_MARGIN, maxLeft),
           },
         });
         return;
       }
       // 左上ハンドルのリサイズ: 右下角を startPos+startSize で固定したまま、左上を動かす。
-      const rightEdge = drag!.startPos.left + drag!.startSize.width;
-      const bottomEdge = drag!.startPos.top + drag!.startSize.height;
+      const rightEdge = d.startPos.left + d.startSize.width;
+      const bottomEdge = d.startPos.top + d.startSize.height;
       const newLeft = clamp(
-        drag!.startPos.left + dx,
+        d.startPos.left + dx,
         VIEWPORT_MARGIN,
         rightEdge - MIN_WIDTH,
       );
       const newTop = clamp(
-        drag!.startPos.top + dy,
+        d.startPos.top + dy,
         VIEWPORT_MARGIN,
         bottomEdge - MIN_HEIGHT,
       );

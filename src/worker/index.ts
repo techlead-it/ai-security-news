@@ -29,6 +29,7 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
+    // chat は SSE で response body を流すため JSON 統一の routeApi には乗せず別経路で処理する。
     const chatMatch = pathname.match(/^\/api\/articles\/(\d+)\/chat$/);
     if (chatMatch && request.method === "POST") {
       const id = Number.parseInt(chatMatch[1], 10);

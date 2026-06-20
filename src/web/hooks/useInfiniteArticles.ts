@@ -70,7 +70,6 @@ export function useInfiniteArticles(
     },
     {
       revalidateFirstPage: false,
-      revalidateOnFocus: true,
       parallel: false,
     },
   );
