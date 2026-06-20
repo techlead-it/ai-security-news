@@ -150,7 +150,7 @@ describe("ChatLauncher", () => {
     await userEvent.type(screen.getByLabelText("質問を入力"), "Q1");
     await userEvent.click(screen.getByRole("button", { name: "送信" }));
     await waitFor(() =>
-      expect(screen.getByTestId("chat-message-assistant")).toHaveTextContent(
+      expect(screen.getByTestId("chat-message-assistant-1")).toHaveTextContent(
         "A1",
       ),
     );
@@ -160,8 +160,8 @@ describe("ChatLauncher", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "AIに質問" }));
 
-    expect(screen.getByTestId("chat-message-user")).toHaveTextContent("Q1");
-    expect(screen.getByTestId("chat-message-assistant")).toHaveTextContent(
+    expect(screen.getByTestId("chat-message-user-0")).toHaveTextContent("Q1");
+    expect(screen.getByTestId("chat-message-assistant-1")).toHaveTextContent(
       "A1",
     );
   });

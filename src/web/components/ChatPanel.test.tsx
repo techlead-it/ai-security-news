@@ -44,8 +44,7 @@ describe("ChatPanel", () => {
   it("shows no messages until the user asks a question", () => {
     const api = fakeApiWithChat([], []);
     renderPanel(api);
-    expect(screen.queryByTestId("chat-message-user")).toBeNull();
-    expect(screen.queryByTestId("chat-message-assistant")).toBeNull();
+    expect(screen.queryByTestId(/^chat-message-/)).toBeNull();
   });
 
   it("posts the user's question and renders streamed assistant chunks together", async () => {
@@ -57,11 +56,11 @@ describe("ChatPanel", () => {
     await userEvent.click(screen.getByRole("button", { name: "送信" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("chat-message-assistant")).toHaveTextContent(
+      expect(screen.getByTestId("chat-message-assistant-1")).toHaveTextContent(
         "こんにちは",
       );
     });
-    expect(screen.getByTestId("chat-message-user")).toHaveTextContent("教えて");
+    expect(screen.getByTestId("chat-message-user-0")).toHaveTextContent("教えて");
     expect(calls).toEqual([
       { id: 42, messages: [{ role: "user", content: "教えて" }] },
     ]);
@@ -75,7 +74,9 @@ describe("ChatPanel", () => {
     await userEvent.type(screen.getByLabelText("質問を入力"), "Q1");
     await userEvent.click(screen.getByRole("button", { name: "送信" }));
     await waitFor(() =>
-      expect(screen.getAllByTestId("chat-message-assistant").at(-1)).toHaveTextContent("A1"),
+      expect(screen.getByTestId("chat-message-assistant-1")).toHaveTextContent(
+        "A1",
+      ),
     );
 
     await userEvent.type(screen.getByLabelText("質問を入力"), "Q2");
@@ -100,7 +101,7 @@ describe("ChatPanel", () => {
     await waitFor(() =>
       expect(screen.getByTestId("chat-error")).toBeInTheDocument(),
     );
-    expect(screen.getByTestId("chat-message-user")).toHaveTextContent("Q");
+    expect(screen.getByTestId("chat-message-user-0")).toHaveTextContent("Q");
   });
 
   it("ignores submissions that contain only whitespace", async () => {
@@ -112,5 +113,50 @@ describe("ChatPanel", () => {
     await userEvent.click(screen.getByRole("button", { name: "送信" }));
 
     expect(calls).toHaveLength(0);
+  });
+
+  it("aborts the in-flight chat stream when the component unmounts", async () => {
+    const signals: AbortSignal[] = [];
+    let release: () => void = () => {};
+    const api: ApiClient = createFakeApiClient({
+      chatWithArticle: async function* (_id, _messages, signal) {
+        if (signal) signals.push(signal);
+        // 解放されるまでこのジェネレータは中断状態を保つ
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+      },
+    });
+    const { unmount } = renderPanel(api);
+
+    await userEvent.type(screen.getByLabelText("質問を入力"), "Q");
+    await userEvent.click(screen.getByRole("button", { name: "送信" }));
+    await waitFor(() => expect(signals).toHaveLength(1));
+    expect(signals[0].aborted).toBe(false);
+
+    unmount();
+
+    expect(signals[0].aborted).toBe(true);
+    release();
+  });
+
+  it("does not render the error state when the stream is aborted", async () => {
+    const api: ApiClient = createFakeApiClient({
+      chatWithArticle: async function* () {
+        const err = new Error("aborted");
+        err.name = "AbortError";
+        throw err;
+      },
+    });
+    renderPanel(api);
+
+    await userEvent.type(screen.getByLabelText("質問を入力"), "Q");
+    await userEvent.click(screen.getByRole("button", { name: "送信" }));
+
+    // assistant の placeholder は付くが、abort はエラー扱いしない
+    await waitFor(() =>
+      expect(screen.getByTestId("chat-message-assistant-1")).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("chat-error")).toBeNull();
   });
 });
