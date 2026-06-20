@@ -95,7 +95,10 @@ export async function serveOgImage(
   request: CfRequest,
   generate: () => Promise<CfResponse>,
 ): Promise<CfResponse> {
-  const cached = await caches.default.match(request);
+  // Cache API は GET レスポンスのみ保存可能。HEAD など他のメソッドでも
+  // GET と同じキーでルックアップ/保存できるよう、URL ベースの GET リクエストをキーにする。
+  const cacheKey = new Request(request.url, { method: "GET" }) as unknown as CfRequest;
+  const cached = await caches.default.match(cacheKey);
   if (cached) return cached;
 
   const generated = await generate();
@@ -107,6 +110,6 @@ export async function serveOgImage(
       "Cache-Control": "public, max-age=86400, s-maxage=86400",
     },
   }) as unknown as CfResponse;
-  await caches.default.put(request, response.clone());
+  await caches.default.put(cacheKey, response.clone());
   return response;
 }
