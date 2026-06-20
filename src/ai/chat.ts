@@ -7,6 +7,12 @@ export const CHAT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 /** AI に投入する記事 body 長の上限。モデルの context window と Neuron 消費を抑える。 */
 export const CHAT_MAX_BODY = 6000;
 
+/**
+ * 応答生成トークンの上限。Workers AI のデフォルト 256 は日本語で 200〜400 文字
+ * 程度しかなく、箇条書きや長文回答が途中で切れる。明示指定で十分な長さを確保する。
+ */
+export const CHAT_MAX_TOKENS = 2048;
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
@@ -59,6 +65,7 @@ export function createWorkersAiChatEngine(
           ...userMessages,
         ],
         stream: true,
+        max_tokens: CHAT_MAX_TOKENS,
       })) as unknown as ReadableStream<Uint8Array>;
       yield* parseSseResponseChunks(raw);
     },

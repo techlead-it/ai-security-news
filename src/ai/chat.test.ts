@@ -5,6 +5,7 @@ import {
   createFakeChatEngine,
   CHAT_MODEL,
   CHAT_MAX_BODY,
+  CHAT_MAX_TOKENS,
 } from "./chat";
 
 function sseStream(chunks: string[]): ReadableStream<Uint8Array> {
@@ -131,6 +132,27 @@ describe("createWorkersAiChatEngine", () => {
     // 本文部分の長さは CHAT_MAX_BODY に切られていること
     const bodyOnly = systemContent.split("---記事本文---\n")[1] ?? "";
     expect(bodyOnly.length).toBe(CHAT_MAX_BODY);
+  });
+
+  it("passes CHAT_MAX_TOKENS to ai.run so the model's small default does not truncate long answers", async () => {
+    // Workers AI のデフォルト max_tokens は 256 と小さく、日本語応答が途中で
+    // 切れる。inputs に明示的に上限を渡すことを契約として固定する。
+    const calls: Array<{ inputs: unknown }> = [];
+    const ai = {
+      run: async (_model: string, inputs: unknown) => {
+        calls.push({ inputs });
+        return sseStream(["data: [DONE]\n\n"]);
+      },
+    } as unknown as Ai;
+
+    const engine = createWorkersAiChatEngine(ai);
+    await collect(
+      engine.stream({ title: "T", body: "B" }, [
+        { role: "user", content: "q" },
+      ]),
+    );
+    const inputs = calls[0].inputs as { max_tokens?: number };
+    expect(inputs.max_tokens).toBe(CHAT_MAX_TOKENS);
   });
 
   it("ignores malformed SSE lines without breaking the stream", async () => {
