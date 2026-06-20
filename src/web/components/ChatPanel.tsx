@@ -30,6 +30,10 @@ export function ChatPanel({ articleId }: { articleId: number }) {
   // 進行中の SSE 接続。アンマウント時 / 新規送信時に abort して Neuron 浪費と
   // setState-after-unmount を防ぐ。
   const abortRef = useRef<AbortController | null>(null);
+  const messagesRef = useRef<HTMLUListElement | null>(null);
+  // ユーザが下端付近にいる時だけストリーム追従する。スクロールアップ時は
+  // false になり、自動スクロールが過去メッセージの閲覧を妨げない。
+  const followBottomRef = useRef(true);
 
   useEffect(
     () => () => {
@@ -38,6 +42,25 @@ export function ChatPanel({ articleId }: { articleId: number }) {
     },
     [],
   );
+
+  const lastMessage = state.messages[state.messages.length - 1];
+  const lastContentLength = lastMessage?.content.length ?? 0;
+  const messageCount = state.messages.length;
+
+  useEffect(() => {
+    if (!followBottomRef.current) return;
+    const el = messagesRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [messageCount, lastContentLength]);
+
+  function handleMessagesScroll() {
+    const el = messagesRef.current;
+    if (!el) return;
+    const FOLLOW_THRESHOLD_PX = 32;
+    followBottomRef.current =
+      el.scrollHeight - el.scrollTop - el.clientHeight <= FOLLOW_THRESHOLD_PX;
+  }
 
   const isStreaming = state.status === "streaming";
 
@@ -91,7 +114,11 @@ export function ChatPanel({ articleId }: { articleId: number }) {
 
   return (
     <>
-      <ul className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
+      <ul
+        ref={messagesRef}
+        onScroll={handleMessagesScroll}
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3"
+      >
         {state.messages.map((m, i) => (
           <li
             key={i}
