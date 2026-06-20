@@ -6,7 +6,11 @@
   "assets": {
     "directory": "./dist/",
     "binding": "ASSETS",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    // SPA ルート (/, /home, /articles/:id 等) の index.html に Worker で OGP メタタグを
+    // 書き換えるため、すべてのリクエストを Worker 先行で受ける。静的アセットは Worker 内で
+    // Content-Type を見て env.ASSETS.fetch のレスポンスをそのまま返す。
+    "run_worker_first": true
   },
   "d1_databases": [
     {

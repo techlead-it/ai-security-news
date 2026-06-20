@@ -1,9 +1,9 @@
-import { createHashRouter, Navigate } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import { HomePage } from "./web/pages/HomePage";
 import { ArticlePage } from "./web/pages/ArticlePage";
 import { SourcesPage } from "./web/pages/SourcesPage";
 
-export const router = createHashRouter([
+export const router = createBrowserRouter([
   { path: "/", element: <Navigate to="/home" replace /> },
   { path: "/home", element: <HomePage /> },
   { path: "/sources", element: <SourcesPage /> },
