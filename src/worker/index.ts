@@ -69,13 +69,20 @@ export default {
   },
 
   async scheduled(_controller, env) {
-    await runCollection({
-      feeds: FEEDS,
-      http: httpClient,
-      ai: createWorkersAiEngine(env.AI),
-      repo: new Repository(env.DB),
-      logger: (message) => console.log(message),
-    });
+    try {
+      await runCollection({
+        feeds: FEEDS,
+        http: httpClient,
+        ai: createWorkersAiEngine(env.AI),
+        repo: new Repository(env.DB),
+        logger: (message) => console.log(message),
+      });
+    } catch (err) {
+      // 例外を握り潰すと Cloudflare の cron 履歴には「内部エラー」とだけ
+      // 残り原因が一切追えないため、必ずスタックを console に出してから再throw する。
+      console.error("[cron] runCollection failed:", err);
+      throw err;
+    }
   },
 } satisfies ExportedHandler<Env>;
 
