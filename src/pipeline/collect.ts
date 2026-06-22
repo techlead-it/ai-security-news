@@ -167,7 +167,12 @@ async function processItem(
         ctx.log("Neuron 日次上限に到達。処理済み分をコミットして終了します。");
         return { kind: "neuronLimit", fetchFailed };
       }
-      ctx.log(`AI 解析に失敗（スキップ）: ${item.url}`);
+      const errorName =
+        err instanceof Error ? err.constructor.name : typeof err;
+      const message = err instanceof Error ? err.message : String(err);
+      ctx.log(
+        `AI 解析に失敗（スキップ）: ${item.url}: ${errorName}: ${message}`,
+      );
       return { kind: "aiError", fetchFailed };
     }
 
